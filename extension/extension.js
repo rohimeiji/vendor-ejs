@@ -1,3 +1,4 @@
+// Initial Service Worker
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
     navigator.serviceWorker
         .register(base_url+'/sw.js')
