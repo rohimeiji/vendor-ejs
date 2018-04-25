@@ -66,6 +66,13 @@ Number.prototype.format = function(fractionDigit = 0, country = "id"){
 String.prototype.format = function(fractionDigit = 0, country = "id"){
     return parseFloat(this.toString()).format(fractionDigit, country);
 }
+Number.prototype.round = function(digits=0){
+    if(["","NaN","0"].indexOf(this.toString()) > -1) return 0;
+    return Math.round(parseFloat(this.toString()) * Math.pow(10, digits)) / Math.pow(10, digits);
+}
+String.prototype.round = function(digits=0){
+    return parseFloat(this.toString()).round(digits);
+}
 String.prototype.replaceAll = function(search, replacement) {
     var target = this;
     return target.replace(new RegExp(search, 'g'), replacement);
