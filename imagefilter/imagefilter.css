@@ -1,0 +1,62 @@
+.imagefilter{
+	background: #2d2d2d;
+	position: fixed;
+	z-index: 9999;
+	top: 0px;
+	left: 0px;
+	width: 100%;
+	height: 100%;
+	color: #fff;
+}
+.imagefilter .form-group{
+	display: inline-block;
+	width: 400px;
+}
+.imagefilter label{
+	font-weight: 400;
+	color: #fff;
+}
+.imagefilter .btnClose{
+	position:absolute;
+	right: 30px;
+	top: 30px;
+	z-index: 10;
+}
+.imagefilter #myCanvas{
+	max-width: 100%;
+	max-height: 100%;
+}
+.imagefilter .image-container{
+	position: absolute;
+	top: 50px;
+	bottom: 100px;
+	left: 50px;
+	right: 50px;
+	text-align: center;
+}
+.imagefilter .control-container{
+	position: absolute;
+	bottom: 20px;
+	left: 50px;
+	right: 50px;
+	text-align: center;
+}
+.imagefilter .control-container label{
+	text-align: right;
+}
+.imagefilter .btn{
+	border: 2px solid #f9f9f9;
+	margin-right: 10px;
+}
+.imagefilter .btn:last-child{
+	margin-right: 0px;
+}
+.imagefilter .btn-inverted{
+	background: none;
+}
+.imagefilter .btn-inverted:hover, .imagefilter .btn-inverted:focus{
+	color: #fff;
+}
+.imagefilter .jcrop-holder{
+	margin: auto;
+}
