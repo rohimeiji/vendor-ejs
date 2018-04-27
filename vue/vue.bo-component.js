@@ -68,6 +68,7 @@ Vue.component('field', {
         sendEvent: function (e, eventName) {
             this.$emit('input', e.target.value);
             this.$emit(eventName, e);
+            $(e.target).valid()
         },
         keypressFunc: function(){
             return this.keypress ? 'return '+this.keypress+'(event)' : '';
@@ -90,6 +91,7 @@ Vue.component('tagsinput', {
         $(this.$el).change((e) => {
             this.$emit('input', e.target.value);
             this.onEdit = true;
+            $(e.target).valid()
             _delay(() => {
                 this.onEdit = false
             }, 300);
@@ -141,6 +143,48 @@ Vue.component('radio', {
         }
     }
 });
+
+/* ================================
+Checkbox
+================================== */
+Vue.component('checkbox', {
+    props: {
+        name: String,
+        label: String,
+        option: String,
+        checked: {default:false},
+        value: String,
+        validate: {default:""},
+        disabled: Boolean,
+    },
+    template: '<label class="checkbox-inline p-0">\
+                    <div class="checkbox checkbox-info">\
+                        <input type="checkbox" v-model="status" :name="name" :validate="validate" :id="radioID()" :value="option" :disabled="disabled">\
+                        <label :for="radioID()">{{label}}</label>\
+                    </div>\
+                </label>',
+    data:function(){
+        return {status:this.value}
+    },
+    mounted: function(){        
+        // this.status = this.checked
+        // this.$emit("input", this.checked);
+    },
+    methods: {
+        radioID:function(){
+            return 'checkbox'+this._uid;
+        }
+    },
+    watch: {
+        status: function(v){
+            this.$emit("input", v);
+        },
+        value: function(value){
+            this.status = value;
+        }
+    },
+});
+
 /* ================================
 Submit
 ================================== */
@@ -175,26 +219,40 @@ Vue.component('modal', {
         cancelLabel: {default:"Cancel"},
         size: {default:"modal-md"},
     },
-    template: '<div :id="\'modal\'+name" class="modal fade" role="dialog">\
-		<div class="modal-dialog" :class="size">\
-			<div class="modal-content">\
-				<div class="modal-header">\
-					<h4 class="modal-title">{{title}}</h4>\
-				</div>\
-				<v-form v-bind="{action:action,method:method,type:type}">\
-					<div class="modal-body">\
-						<slot></slot>\
-					</div>\
-                    <div class="modal-footer">\
-                        <slot name="footer">\
-						<button v-if="submitLabel" type="submit" class="btn btn-info btn-loading">{{submitLabel}}</button>\
-                        <button type="button" class="btn btn-default" data-dismiss="modal">{{cancelLabel}}</button>\
-                        </slot>\
-					</div>\
-				</v-form>\
-			</div>\
-		</div>\
-    </div>',
+    template: `<div :id="'modal'+name" class="modal fade" role="dialog">
+		<div class="modal-dialog" :class="size">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h4 class="modal-title">{{title}}</h4>
+                    <button type="button" class="close close_modal" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true"><i class="fa fa-times"></i></span>
+                    </button>
+				</div>
+				<v-form v-bind="{action:action,method:method,type:type}" @resp="vFormResp">
+					<div class="modal-body">
+						<slot></slot>
+					</div>
+                    <div class="modal-footer">
+                        <slot name="footer">
+						<button v-if="submitLabel" type="submit" class="btn btn-info btn-loading">{{submitLabel}}</button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal">{{cancelLabel}}</button>
+                        </slot>
+					</div>
+				</v-form>
+			</div>
+		</div>
+    </div>`,
+    mounted: function(){
+        $('#modal'+this.name).on('hidden.bs.modal', ()=>{
+            this.$emit("close", this)
+        })
+    },
+    methods: {
+        vFormResp: function(vform){
+            if (this._events.resp) return this.$emit('resp', vform)
+            vform.submit()
+        }
+    }
 });
 /* ================================
 PreviewImage

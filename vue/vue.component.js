@@ -1,3 +1,16 @@
+Vue.component('offline', {
+	data: function(){
+		return {
+			online: true
+		}
+	},
+	template: `<div v-if="!online" class="offline" style="background: red;color: #fff;padding: 3px;display: inline-block;position: fixed;width: 200px;text-align: center;left: calc(50% - 100px);"><slot></slot></div>`,
+	mounted: function(){
+		setInterval(() => {
+			this.online = navigator.onLine
+		}, 500);
+	}
+});
 Vue.component('loading-spinner', {
 	template: '<div class="loading-spinner" :class="{light:light}"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>',
 	props: ['light'],
@@ -59,7 +72,6 @@ Vue.component('select2', {
 			.on('change', (resp) => {
 				this.$emit('change', resp)
 				this.$emit('input', resp.val)
-				$(resp.target).valid()
 			});
 	},
 	methods:{
@@ -79,19 +91,57 @@ Vue.component('select2', {
 			});
 			setTimeout(() => { $(this.$el).val(value).select2(); }, 100);
 		}
+	},
+	destroyed: function () {
+	    $(this.$el).off().select2('destroy')
 	}
 });
+Vue.component('clockpicker', {
+	props: ['name','value','validate'],
+	template: '<div class="input-group">\
+				  <input :name="name" type="text" class="form-control">\
+				  <div class="input-group-addon"><span class="glyphicon glyphicon-time"></span></div>\
+				</div>',
+	mounted: function () {
+		plugins('clockpicker');
+		this.input = $(this.$el).find('input');
+		this.input.val(this.value);
+		$(this.$el).clockpicker({
+			autoclose: true
+		});
+		this.input.change((e)=>{
+			this.$emit('input', e.target.value);
+			vValidate(this, e.target.value);
+		});
+	},
+	watch: {
+		value: function (value) {
+			this.input.val(value);
+		}
+	},
+});
+
 Vue.component('datepicker', {
-	props: ['value'],
+	props: ['value','dateType'],
 	template: '<input type="text" class="form-control">',
 	mounted: function () {
 		plugins('bs-datepicker');
-		$(this.$el).datepicker({
+		var option = {
 			todayHighlight: true,
 			autoclose: true
-		}).change((e)=>{
+		}
+		if(this.dateType=="dob") option = {
+			format: 'dd-mm-yyyy',
+			orientation: "bottom",
+			calendarWeeks: true,
+			autoclose: true,
+			todayHighlight: true,
+			startView: 'decade',
+			endDate: '-15y',
+		}
+
+		$(this.$el).datepicker(option).change((e)=>{
 			this.$emit('input', e.target.value)
-			$(e.target).valid()
 		});
 	},
 	watch: {
@@ -100,35 +150,69 @@ Vue.component('datepicker', {
 		}
 	}
 });
+
+Vue.component('daterangepicker', {
+	props: ['value','dateType'],
+	template: '<input type="text" data-date-format="dd-mm-yyyy" class="form-control" value="">',
+	mounted: function () {
+		plugins('bs-daterangepicker');
+		var option = {
+			dateInputFormat: 'dd-mm-yyyy',
+			format: 'dd-mm-yyyy',
+			linkedCalendars: false,
+			todayHighlight: false,
+			autoclose: true
+		}
+		if(this.dateType=="dob") option = {
+			format: 'dd-mm-yyyy',
+			orientation: "bottom",
+			calendarWeeks: true,
+			autoclose: true,
+			todayHighlight: true,
+			startView: 'decade',
+			endDate: '-15y',
+		}
+
+		$(this.$el).daterangepicker(option).change((e)=>{
+			this.$emit('input', e.target.value)
+		});
+	},
+	watch: {
+		value: function (value) {
+			$(this.$el).daterangepicker("update", value)
+		}
+	},
+});
+
 Vue.component('ckeditor', {
 	props: ['name', 'value'],
 	template: '<textarea :name="name" :id="name"></textarea>',
 	mounted: function () {
-		if(this.value) this.$el.value = this.value;
+		if(this.value) this.$el.value = this.value
 		this.ck = CKEDITOR.replace(this.name, {
 			height: '400px',
 			extraPlugins: 'forms',
 			allowedContent: true,
 			filebrowserUploadUrl: base_url+'/ajax/upload?pageType=editor&_token=' + _token,
-		});
+		})
 		this.ck.on('change', () => {
-			this.$emit('input', this.ck.getData());
-			this.onEdit = true;
-			this.$el.value = this.ck.getData();
+			this.$emit('input', this.ck.getData())
+			this.onEdit = true
+			this.$el.value = this.ck.getData()
 			_delay(() => {
 				this.onEdit = false
-			}, 300);
-		});
-		ck = this.ck;
+			}, 300)
+		})
 	},
 	watch: {
 		value: function (v) {
 			if (!this.onEdit){
-				this.ck.setData(v);
+				this.ck.setData(v)
 			}
 		}
 	}
-});
+})
+
 Vue.component('v-form', {
 	props: {
 		target: {
@@ -147,18 +231,10 @@ Vue.component('v-form', {
 			default: "",
 		}
 	},
-	template: '<form :data-vv-scope="formName"><slot></slot></form>',
-	data: function () {
-		_vue.form.push(this);
-		return {
-			formName: "form_" + _vue.form.length,
-		}
-	},
+	template: '<form><slot></slot></form>',
 	mounted:function(){
 		$.validator.setDefaults({ 
 			ignore: ".nv",
-		})
-		$.validator.setDefaults({
 			errorPlacement: function (error, element) {
 				var placement = $("[error='" + element.attr('name') + "']")
 				var label = placement.attr('label') || element.attr('name')
@@ -166,18 +242,20 @@ Vue.component('v-form', {
 				if (placement.length) {
 					placement.html(error)
 				} else {
-					error.insertAfter(element);
+					error.insertAfter(element)
 				}
 			},
 		})
-		$("form").validate()
-		$(this.$el).submit((e)=>{
+		this.form = $(this.$el)
+		this.form.validate()
+		this.btnBefore = this.form.find(".btn-loading").html()
+		this.form.submit((e)=>{
 			$('[validate]').each(function(){
-				if(!$(this).is('input,textarea,select')) return;
-				var rules = [], t = []
+				if(!$(this).is("input,textarea,select")) return
+				var rules = [], t = 0
 				$(this).attr('validate').split("|").forEach((v)=>{
 					ex = v.split(":")
-					if(!ex[0]) return;
+					if(!ex[0]) return
 					if(ex[1]){
 						rules[ex[0]] = parseInt(ex[1]) ? parseInt(ex[1]) : ex[1]
 					}else{
@@ -188,23 +266,25 @@ Vue.component('v-form', {
 				if(t) $(this).rules("add", rules)
 			})
 
-			e.preventDefault();
-			if(!$(this.$el).valid()){
-				if($(".error").length) $("html,body").animate({scrollTop:($(".error").offset().top-100)}, 300)
-				return
-			}
-			this.query = $(this.$el).serialize();
-			this.serialize = serialize($(this.$el));
-			if (this._events.resp) return this.$emit('resp', this);
-			if (typeof nds != "undefined") return false;
-			// nds is no double submission, create nds variable after this function call
-			nds = true;
-			$form = $(this.$el);
+			e.preventDefault()
 
-			/*
-				* Loading table
-				*/
-			if (this.type == "table") $(this.target).block({
+			if(!this.validate()) return
+			if (this._events.resp) return this.$emit('resp', this)
+			this.submit()
+		});
+	},
+	methods: {
+		validate: function(){
+			return $(this.$el).valid()
+		},
+		btnLoading: function(){
+			this.form.find(".btn-loading").html('<div class="loading-spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>');
+		},
+		btnUnloading: function(){
+			this.form.find(".btn-loading").html(this.btnBefore);
+		},
+		tableLoading: function(){
+			$(this.target).block({
 				message: '<i class="icon-spinner4 spinner"></i>',
 				timeout: 2000, //unblock after 2 seconds
 				overlayCSS: {
@@ -218,14 +298,26 @@ Vue.component('v-form', {
 					backgroundColor: 'transparent'
 				}
 			});
-			$button = $form.find(".btn-loading").html();
-			$form.find(".btn-loading").html('<div class="loading-spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>');
+		},
+		tableUnloading: function(){
+			$(this.target).unblock();
+		},
+		submit: function(callback){
+			if (typeof nds != "undefined") return false
+			// nds is no double submission, create nds variable after this function call
+			nds = true;
 
 			/*
-				* Parameter submission
-				*/
-			$data = serialize($form);
-			if (this.method == 'post') $data['_token'] = _token;
+			* Loading table
+			*/
+			if (this.type == "table") this.tableLoading()
+			this.btnLoading()
+
+			/*
+			* Parameter submission
+			*/
+			$data = this.form.serialize();
+			if (this.method == 'post') $data += encodeURI("&_token="+_token)
 
 			// Run ajax submission
 			$.ajax({
@@ -234,37 +326,31 @@ Vue.component('v-form', {
 				data: $data,
 				beforeSubmit: () => {
 					/* run loading button if button submit has 'btn-loading' class */
-					$form.find("[type='submit'],button").attr('disabled', '');
+					this.form.find("[type='submit'],button").attr('disabled', '');
 				},
 				error: () => {
 					delete nds;
-					$form.find("[type='submit'],button").removeAttr('disabled');
+					this.form.find("[name],[type='submit'],button").removeAttr('disabled');
 				},
 				success: (resp) => {
 					delete nds;
 					if (this.type == "table") {
-						$(this.target).unblock();
+						this.tableUnloading();
 						app.query = Object.assign(app.query, $data);
 						app.data = resp.data;
 						app.paginate = resp.paginate;
 						app.currentUrl = resp.url;
 					}
-					$form.find("[type='submit'],button").removeAttr('disabled');
-					if (typeof btnloading == "undefined" && $form.find(".btn-loading").text() == "") {
-						$form.find(".btn-loading").html($button);
+					this.form.find("[name],[type='submit'],button").removeAttr('disabled');
+					if (typeof btnloading == "undefined" && this.form.find(".btn-loading").text() == "") {
+						this.btnUnloading()
 					}
-					if (this._events.success) return this.$emit('success', resp);
+					if(callback) callback(resp)
 					if (typeof resp != "object") eval(resp);
 				},
-			});
-		});
-	},
-	watch: {
-		value: function (value) {
-			// update value
-			$(this.$el).val(value).select2();
+			})
 		}
-	}
+	},
 });
 Vue.component('uploader', {
 	inject: ['$validator'],
@@ -285,29 +371,31 @@ Vue.component('uploader', {
 			}
 		},
 		multiple: Boolean,
+		validate: {default:""},
 	},
-	template: '<div class="upload-container">\
-					<slot name="preview">\
-						<span class="image-preview">\
-							<span v-for="(v, k) in imageData">\
-								<image-preview :src="assets(v)"></image-preview>\
-								<input v-if="multiple" type="hidden" :name="name+\'[]\'" :value="v">\
-							</span>\
-							<input v-if="!multiple" type="hidden" :name="name" :value="imageData[0]">\
-						</span>\
-					</slot>\
-					<a href="javascript:;" class="btn btn-info upload-btn">\
-						<i class="icon-upload10"></i>\
-						<span class="upload-label">\
-							<slot v-if="!uploading" name="label" :uploadText="uploadText"><i class="fa fa-image"></i> {{uploadText}} Photo</slot>\
-							<span v-if="uploading">Uploading...</span>\
-						</span>\
-						<input type="file" @change="onUpload" :id="name">\
-					</a>\
-					<span class="help-block">\
-						<small>Accepted formats : {{conf.rule_type}}. Max file size {{uploader["max_image_size"].bytesToSize()}}</small>\
-					</span>\
-				</div>',
+	template: `<div class="upload-container">
+					<slot name="preview">
+						<span class="image-preview">
+							<span v-for="(v, k) in imageData">
+								<image-preview :src="assets(v)" v-if="v"></image-preview>
+								<input v-if="multiple" :validate="validate" type="hidden" :name="name+'[]'" :value="v">
+							</span>
+							<input v-if="!multiple" :validate="validate" type="hidden" :name="name" :value="imageData[0]">
+						</span>
+					</slot>
+					<a href="javascript:;" class="btn btn-info upload-btn">
+						<i class="icon-upload10"></i>
+						<span class="upload-label">
+							<slot v-if="!uploading" name="label" :uploadText="uploadText"><i class="fa fa-image"></i> {{uploadText}} Photo</slot>
+							<span v-if="uploading">Uploading...</span>
+						</span>
+						<input type="file" @change="onUpload" :id="name">
+					</a>
+					<div :error="name"></div>
+					<span class="help-block">
+						<small>Accepted formats : {{conf.rule_type}}. Max file size {{uploader["max_image_size"].bytesToSize()}}</small>
+					</span>
+				</div>`,
 	data: function () {
 		return {
 			uploading: false,
@@ -319,9 +407,9 @@ Vue.component('uploader', {
 		}
 	},
 	mounted: function () {
-		this.elFile = $(this.$el).find('[type="file"]');
-		if (this.value.length) this.uploadText = "Update";
-		if (typeof this.value != "object") this.imageData = [this.value];
+		this.elFile = $(this.$el).find('[type="file"]')
+		if (this.value.length) this.uploadText = "Update"
+		if (typeof this.value != "object") this.imageData = [this.value]
 	},
 	methods: {
 		assets: function (filename) {
@@ -423,7 +511,7 @@ Vue.component('uploader', {
 	},
 	watch: {
 		value: function (value) {
-			this.imageData = value ? (this.multiple ? value : [value]) : "";
+			this.imageData = value ? (this.multiple ? value : [value]) : ""
 		}
 	}
 });
@@ -580,4 +668,30 @@ var app = new Vue({
 		});
 		return watch;
 	})(),
+});
+// default validation message
+$.extend($.validator.messages, {
+	required: function(p,el){
+		var element = $(el)
+		var placement = $("[error='"+element.attr('name')+"']")
+		var label = placement.attr('label') || fields[element.attr('name')]
+		if(!label) return "Input wajib diisi"
+		var msg = ['radio','checkbox'].indexOf(element.attr('type'))>-1?"Pilih":"Masukkan"
+		return msg+" "+label+"."
+	},
+	email: "Masukkan format email yang benar.",
+	number: "Masukkan format angka yang benar.",
+	creditcard: "Please enter a valid credit card number.",
+	equalTo: "Please enter the same value again.",
+	maxlength: $.validator.format("Masukkan maksimal {0} karakter."),
+	minlength: $.validator.format("Masukkan minimal {0} karakter."),
+	rangelength: $.validator.format("Masukkan antara {0} sampai {1} karakter."),
+	range: $.validator.format("Masukkan antara {0} sampai {1}."),
+	max: $.validator.format("Masukkan maksimal {0}."),
+	min: function(p,el){
+		var element = $(el)
+		var placement = $("[error='"+element.attr('name')+"']")
+		var label = placement.attr('label') || element.attr('name')
+		return placement.data('msg-min') || "Masukkan minimal "+p+"."
+	}
 });
