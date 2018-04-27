@@ -1,4 +1,115 @@
 /* ================================
+Wrapper
+================================== */
+Vue.component('wrapper', {
+    template: `<div id="wrapper"><slot></slot></div>`,
+});
+/* ================================
+Navbar
+================================== */
+Vue.component('navbar', {
+    props: [],
+    data: function(){
+        return {
+            user: this.$root.user,
+        }
+    },
+    template: `
+    <nav class="navbar navbar-default navbar-static-top m-b-0">
+        <div class="navbar-header">
+            <a class="navbar-toggle hidden-sm hidden-md hidden-lg " href="javascript:void(0)" data-toggle="collapse" data-target=".navbar-collapse">
+                <i class="ti-menu"></i>
+            </a>
+            <div class="top-left-part">
+                <a class="logo" :href="routes.bo_dashboard">
+                    <img class="visible-xs" :src="assets('bo_images','logo.png')" alt="home" />
+                    <span class="hidden-xs">
+                        <img :src="assets('bo_images','logo-sm.png')" alt="home" />
+                    </span>
+                </a>
+            </div>
+            <ul class="nav navbar-top-links navbar-left hidden-xs">
+                <li>
+                    <a href="javascript:void(0)" class="open-close hidden-xs waves-effect waves-light">
+                        <i class="icon-arrow-left-circle ti-menu"></i>
+                    </a>
+                </li>
+            </ul>
+            <ul class="nav navbar-top-links navbar-right pull-right">
+                <li class="dropdown">
+                    <a class="dropdown-toggle profile-pic" data-toggle="dropdown" href="#">
+                        <img :src="user.bu_pic ? assets('users',user.bu_pic) : assets('bo_images','users/varun.jpg')" alt="user-img"
+                            width="36" class="img-circle">
+                        <b class="hidden-xs">{{ user.bu_real_name }}</b>
+                    </a>
+                    <ul class="dropdown-menu dropdown-user animated flipInY">
+                        <li>
+                            <a :href="routes.bo_profile"><i class="ti-user"></i> My Profile</a>
+                        </li>
+                        <li>
+                            <a :href="routes.bo_dologout"><i class="fa fa-power-off"></i> Logout</a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>`,
+});
+/* ================================
+Sidebar
+================================== */
+Vue.component('sidebar', {
+    props: [],
+    data: function(){
+        return {
+            user: this.$root.user,
+            menu: this.$root.menu,
+            navparent: this.$root.navparent,
+            navcurrent: this.$root.navcurrent,
+            navchild: this.$root.navchild,
+        }
+    },
+    template: `
+    <div class="navbar-default sidebar" role="navigation">
+        <div class="sidebar-nav navbar-collapse slimscrollsidebar">
+            <ul class="nav" id="side-menu">
+                <li class="sidebar-search hidden-sm hidden-md hidden-lg">
+                    <div class="input-group custom-search-form">
+                        <input type="text" class="form-control" placeholder="Search...">
+                        <span class="input-group-btn">
+                            <button class="btn btn-default" type="button"> <i class="fa fa-search"></i> </button>
+                        </span>
+                    </div>
+                </li>
+                <li class="user-pro">
+                    <a href="#" class="waves-effect">
+                        <img width="30" :src="user.bu_pic ? assets('users',user.bu_pic) : assets('bo_images','users/varun.jpg')" alt="user-img"  class="img-circle"> <span class="hide-menu">{{ user.bu_real_name }}<span class="fa arrow"></span></span>
+                    </a>
+                    <ul class="nav nav-second-level">
+                        <li><a :href="routes.bo_profile"><i class="ti-user"></i> My Profile</a></li>
+                        <li><a :href="routes.bo_dologout"><i class="fa fa-power-off"></i> Logout</a></li>
+                    </ul>
+                </li>
+                <li v-for="(v,k) in menu" :class="{'nav-small-cap m-t-10':v.head,active:k==navparent}">
+                    <span v-if="v.head">{{ v.head }}</span>
+                    <a v-if="!v.child" :href="v.link" class="waves-effect"><i :class="v.icon"></i>&nbsp;&nbsp;<span class="hide-menu">{{ v.name }}</span></a>
+                    <a v-if="v.child" :href="v.link" class="waves-effect"><i :class="v.icon"></i>&nbsp;&nbsp;<span class="hide-menu">{{ v.name }}<span class="fa arrow"></span></span></a>
+                    <ul v-if="v.child" class="nav nav-second-level">
+                        <li v-for="(v2,k2) in v.child">
+                            <a :href="v2.link" :class="{active:k2==navcurrent}">{{ v2.name }} <span v-if="v2.child" class="fa arrow"></span></a>
+                            <ul v-if="v2.child" class="nav nav-third-level collapse">
+                                <li v-for="(v3,k3) in v2.child">
+                                    <a :href="v3.link" :class="{active:k3==navchild}">{{ v3.name }}</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>`,
+});
+/* ================================
 Field
 ================================== */
 Vue.component('field', {
@@ -23,13 +134,13 @@ Vue.component('field', {
         readonly: Boolean,
         maxlength: Number,
     },
-    template: '<div class="form-group">\
-                    <label :class="labelCol()">{{ labelName() }} <span v-if="mandatory" class="text-danger">*</span></label>\
-                    <div :class="inputCol()">\
-                    <slot><input :type="type" :name="name" :validate="validateAttr()" class="form-control" :placeholder="placeHolder()" :onkeypress="keypressFunc()" :disabled="disabled" :readonly="readonly" :maxlength="maxlength"></slot>\
-                    <slot name="help"></slot>\
-                    </div>\
-                </div>',
+    template: `<div class="form-group">
+                    <label :class="labelCol()">{{ labelName() }} <span v-if="mandatory" class="text-danger">*</span></label>
+                    <div :class="inputCol()">
+                    <slot><input :type="type" :name="name" :validate="validateAttr()" class="form-control" :placeholder="placeHolder()" :onkeypress="keypressFunc()" :disabled="disabled" :readonly="readonly" :maxlength="maxlength"></slot>
+                    <slot name="help"></slot>
+                    </div>
+                </div>`,
     data: function(){
         return {
             input: "",
@@ -331,7 +442,7 @@ Vue.component('morris', {
         parseTime: { default:true },
         hoverCallback: Function,
     },
-    template: '<div></div>',
+    template: `<div></div>`,
     mounted:function(){
         setTimeout(()=>{
             this.$emit('input', this);
